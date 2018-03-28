@@ -1,2 +1,2 @@
 # SolarRadiationModule
-toolbox for calculating solar flux components
+A toolbox for calculating solar flux components for stream temperature models.
