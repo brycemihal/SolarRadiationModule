@@ -1,15 +1,14 @@
-function[sunriseTime,sunriseAz,sunsetTime,sunsetAz,TotalDayLength,incidence,directBeamDayLength] = SolarIncidence(xyPoints,xyCoord,azimuthDeg,illum_angle,DOYs,LocalTimes,UTCoffset)
+function[incidence,dateTimes,SkyVF] = SolarIncidence(xyPoints,xyCoord,azimuthDeg,illum_angle,DOYs,LocalTimes,UTCoffset)
 % Bryce Mihalevich
 % Last Modified: 5/2/18
-% 
-% NOTE: Function is incomplete; Model is working but output variables are
-% not yet added to function output
-% ADD example code
-% FIX reshape incidence code
 %
-% Description: function to determine solar incidence
+% Description: function to determine solar incidence and sky view factor.
+% Several other output variables are calculated but are not included in the
+% output of the function at this time. If more certain variables are needed
+% add them to the brackets above to include in output function. Reminder, 
+% variables need to change where it function is called too if this is done. 
 %
-% Input Variables
+% Input Variables: 
 %       xyPoints = [nx2] vector of query point(s) (x,y) in either UTM or
 %       decimal degrees
 %       xyCoord = string that equals 'UTM' or 'DD'
@@ -26,10 +25,23 @@ function[sunriseTime,sunriseAz,sunsetTime,sunsetAz,TotalDayLength,incidence,dire
 %       Localtime: local standard time in decimal hours: 0.0=midnight, 23.0=11pm
 %       UTCoffset (hours): Time shift relative to UTC (hours) (i.e. Utah, -7)
 % 
-% Output Variables
-
-%       incidence
-%       Celestial variables:
+% Potential Output Variables: add variables to function brackets for output
+% ------Shade variables:
+%       incidence = binary array indicating when a point recieves direct
+%       beam (DB) radiation (1's) and when it does NOT recieve DB (0's).
+%       Row in array equals datetimes (LocalTimes for each DOYs)
+%       Columns in array equal number of xy points
+%       Future: 3rd dim for cross section width locations with each xyPoint
+%       dateTimes = datetime array with LocalTimes for each DOY
+% 
+% ------Constant with time variables:
+%       SkyVF = Sky view factor or hemispherical area
+%       AzimuthOfLowestAltitude90to269 = unknown/not calculated
+%       AzimuthOfLowestAltitude270to89 = unknown/not calculated
+%       CanyonAzimuth = unknown/not calculated
+%       CanyonHemiAngle = unknown/not calculated
+%
+% ------Solar Position variables:
 %       sunriseTime = calculated time of sunrise specific to a day and point
 %       sunriseAz = azimuth angle at sunrise specific to a day and point
 %       sunriseZe = zenith angle at sunrise specific to a day and point
@@ -38,40 +50,36 @@ function[sunriseTime,sunriseAz,sunsetTime,sunsetAz,TotalDayLength,incidence,dire
 %       sunsetZe = zenith angle at sunset specific to a day and point
 %       TotalDayLength = sunrise minus sunset in minutes
 %       
-%       Topo variables:
+% ------Topo variables:
 %       TopoRiseTime = time when sun first hist point of interest  
 %       TopoRiseSolAz = azimuth angle when sun first hits point of interst
-%       TopoRiseSolAlt = 90-zenith angle when sun first hits point of interest 
+%       TopoRiseSolAlt = 90-zenith angle when sun first hits point of interest
+%       TopoRiseIncidence = unknown/not calculated
 %       TopoSetTime = time when sun first hist point of interest  
 %       TopoSetSolAz = azimuth angle when sun first hits point of interst
 %       TopoSetSolAlt = 90-zenith angle when sun first hits point of interest
 %       directBeamDayLength = TopoSetTime minut TopoRiseTime in minutes
-
-%       HemisphericalArea
-%       AzimuthOfLowestAltitude90to269
-%       AzimuthOfLowestAltitude270to89
-%       CanyonAzimuth
-%       CanyonHemiAngle
-
-%       Radiation variabels:
+%       TopoSetIncidence = unknown/not calculated
+%       
+% ------Radiation variabels:
 %       diffuseRiseTime = time of morning civil twilight, defined as 6 degrees
 %       (from the vertical) below the horizon (i.e.: ~96 degrees)
 %       diffuseSetTime = time of evening civil twilight, defined as 6 degrees
 %       (from the vertical) below the horizon  (i.e.: ~96 degrees)
 %       difuseLength = diffusesetTime minus diffuseRiseTime in minutes
-%       InsolationDirect = ?
-%       InsolationDiffuse = ?
-%       InsolationTotal = InsolationDiffuse plus InsolationDirect
-
-% %% Example 1
-
+%       InsolationDirect = unknown/not calculated
+%       InsolationDiffuse = unknown/not calculated
+%       InsolationTotal = unknown/not calculated
+%
+% For example code see: Example_Script_to_use_functions.m in Examples folder. 
+%
 %% Determine coordinate system of points and convert xyCoords if needed
 % if xy coordinates are in UTM then convert
 if strcmp(xyCoord,'UTM') %then convert to UTM
         zone = 12;
         isnorth = 1;
         [lat,lon] = utmups_inv(xyPoints(:,1),xyPoints(:,2),zone,isnorth); %UTM to DD conversion
-        xyPoints = [lon,lat]; %CHECK THIS
+        xyPoints = [lon,lat];
 end
 
 % separate x and y values
@@ -111,11 +119,11 @@ UTCtimes = LocalTimes - UTCoffset; %input is in local time, need to input times 
 for pnt = 1:size(xyPoints,1) % loop for each point in array
     
     % HemisphericalArea (Sky View Factor)
-    SkyVF(pnt) = mean((90-illum_angle(pnt,:))./90); %from Yard paper
-    % AzimuthOfLowestAltitude90to269 ?
-    % AzimuthOfLowestAltitude270to89 ?
-    % CanyonAzimuth ?
-    % CanyonHemiAngle ?
+    SkyVF(pnt) = mean((90-illum_angle(pnt,:))./90); %from Yard paper - consider changing to other svf methods
+    % AzimuthOfLowestAltitude90to269 ?% not sure how to calculate this yet
+    % AzimuthOfLowestAltitude270to89 ?% not sure how to calculate this yet
+    % CanyonAzimuth ?% not sure how to calculate this yet
+    % CanyonHemiAngle ?% not sure how to calculate this yet
     
     for jday = 1:numDays % loop for days of year to test
 
@@ -189,6 +197,7 @@ for pnt = 1:size(xyPoints,1) % loop for each point in array
         diffuseLength(pnt,jday) = (diffuseSet-diffuseRise)*60; % minutes
 
         % ----------- Insolation -----------
+        % not sure how to calculate these yet
         % InsolationDirect ?
         % InsolationInDifuse ?
         % InsolationTotal ?       
@@ -198,18 +207,13 @@ end
 
 % reshape incidence to be 2d array where
 % rows == datetimes and columns == xy points
-% incidence = reshape(incidence,[numDays*numTimes,numPoints]);
+incidence = reshape(incidence,[numDays*numTimes,numPoints]);
 
-%%
-% Celestial variables:
-for j = 4%:length(DOYs) %column
-    for i = 1:10:191 %row
-        disp({[SkyVF(i)];[];[];[];[];...
-        char(sunriseTime(i,j));sunriseAz(i,j);TotalDayLength(i,j);char(sunsetTime(i,j));sunsetAz(i,j);...
-        directBeamDayLength(i,j);char(TopoRiseTime(i,j));[];TopoRiseSolAz(i,j);...
-        TopoRiseSolAlt(i,j);char(TopoSetTime(i,j));[];TopoSetSolAz(i,j);TopoSetSolAlt(i,j);...
-        char(diffuseRiseTime(i,j));char(diffuseSetTime(i,j));diffuseLength(i,j);...
-        [];[];[]})
-        disp({[];[]})
-    end
-end
+%% Build datetime array
+%reshape DOYs to be number of LocalTimes for each DOY
+dateArray = repmat(DOYs,size(LocalTimes,2),1); %repeat matrix for number of values in LocalTimes
+dateArray = dateArray(:); %stack columns
+timeArray = repmat(LocalTimes',size(DOYs,2),1); %repeat matrix for number of DOYs
+
+datetimeString = strcat(datestr(dateArray,'dd-mmm'),{' '},datestr(hours(timeArray),'HH:MM:SS')); %concatenate the date and the time
+dateTimes = datetime(datetimeString,'InputFormat','dd-MMM HH:mm:SS'); %auto appends the current year

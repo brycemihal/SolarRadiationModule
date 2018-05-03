@@ -8,6 +8,9 @@ function [SkyVF] = SVF(illum_angle)
 
 % Outputs:
 
+% Code incomplete
+% Used to make comparison of different svf methods
+
 for i = 1:size(illum_angle,1)
     %% Change illumination angles to be from horizontal
     illum_angle_horiz = 90-illum_angle(i,:);

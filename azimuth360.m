@@ -1,9 +1,7 @@
+function [illum_angle,illum_elev,illum_dist] = azimuth360(xyPoints,xyCoord,azimuthDeg,DEM_data,DEM_ref,h,r,n)
 %% Function to calculate 0:360 degree asimuth angles for a lat/lon points
-
-function [illum_angle,illum_elev,illum_dist,utm_elev,x_ind,y_ind,elev_ind] = azimuth360(xyPoints,xyCoord,h,DEM_data,DEM_ref,azimuthDeg,r,n,return_grid)
 % Bryce Mihalevich
-% Last modified: 3/4/18
-%
+% Last modified: 5/3/18
 %
 % Description: 
 % This function will calculate the illumination angle (the angle from the
@@ -19,30 +17,23 @@ function [illum_angle,illum_elev,illum_dist,utm_elev,x_ind,y_ind,elev_ind] = azi
 %       decimal degrees
 %       xyCoord = string that equals 'UTM' or 'DD' to indicate coodinate
 %       system
-%       h = meters above ground surface. Model seems to work better with
-%       observation point 1-3 meters above surface.
+%       azimuthDeg = [1xm] vector of azimuth values to run the model for
 %       DEM_data = raster grid data (10 km buffer around points of interest
 %       consider changing to greater or less buffer for certain areas)
 %       DEM_ref = metadata for raster
-%       azimuthDeg = [1xm] vector of values
+%       h = meters above ground surface. Model seems to work better with
+%       observation point 1-3 meters above surface.
 %       r = search radius in meters; 5000 seems to be sufficient for deep
 %       canyons, 10000-15000 for open basin.
 %       n = number of samples in search radius (r/n = 1 == every 1 meter)
-%       return_grid = binary 1 or 0. If 1 additional data will be available
-%       in the output. Good making plots of raster. Slows down code a lot.
-%       Only recommend if doing < 10 points.
 % 
 % Output Variables
 %       illum_angle = [n x m] vector of illumination agles where n = number
 %       of latlongPoints (measured from the HORIZONTAL)
-%       utm_elev = [n x 1] vector with elevations of query points (meter)
 %       illum_elev = [n x m] elevation at the point with greatest 
 %       illumination angle (meters)
 %       illum_dist = [n x m] distance from query point to the greatest 
 %       illumination angle (meters)
-%       x_ind = [n x m x qdist] matrix of all queired x points
-%       x_ind = [n x m x qdist] matrix of all queired y points
-%       elev_ind = [n x m x qdist] matrix of all queired elevations
 % 
 % %% Example 1
 % %Lat/lon points
@@ -60,9 +51,11 @@ function [illum_angle,illum_elev,illum_dist,utm_elev,x_ind,y_ind,elev_ind] = azi
 
 %% Flip DEM data if needed
 % code is writen so y data starts in the south; DEM's typically start in the north. 
-% DEM data can be flipped. Use reference info to flip data
-% if RowsStartFrom = 'east' then the data needs to be flipped left to right -- fliplr(DEM_data)
-% if ColumnStartFrom = 'north' then the data is fliped upside down -- flipud(DEM_data)
+% DEM data can be flipped. Use DEM reference info to flip data
+% if RowsStartFrom = 'east' then the data needs to be flipped left to right
+% -- fliplr(DEM_data) (This is unlikely)
+% if ColumnStartFrom = 'north' then the data needs to be fliped upside down
+% -- flipud(DEM_data) (This is likely)
 if strcmp(DEM_ref.ColumnsStartFrom,'north')
     DEM_data = flipud(DEM_data);
     DEM_ref.ColumnsStartFrom = 'south';
@@ -99,10 +92,10 @@ radDeg = [90 0 -90 -180 -270 -360];
 azimuthDegq = round(interp1(azAngles,radDeg,azimuthDeg),1);
 
 %% Preallocate memory to variables for speed
-% elev_mq
-% illum_angle
-% illum_elev
-% illum_dist
+elev_mq = zeros(size(qdist)); %floating point array
+illum_angle = zeros(size(xyPoints,1),size(azimuthDegq,2)); %floating point array
+illum_elev = zeros(size(xyPoints,1),size(azimuthDegq,2)); %floating point array
+illum_dist = zeros(size(xyPoints,1),size(azimuthDegq,2)); %floating point array
 
 %% Loop for number of xy points
 for pnt = 1:size(xyPoints,1) % loop for each point in array
@@ -110,7 +103,7 @@ for pnt = 1:size(xyPoints,1) % loop for each point in array
     % Determine elevation from DEM grid        
     col = ceil(abs((xLimits(1)-xyPoints(pnt,1))/xCellSize));
     row = ceil(abs((yLimits(1)-xyPoints(pnt,2))/yCellSize));
-    elev_m = DEM_data(row,col)+h; %the model seems to do better with the point 1-3 meters above he DEM surface
+    elev_m = DEM_data(row,col)+h; %the model seems to do better with the point 1-3 meters above the DEM surface
     
     % loop for azimuth angles and determine cell value for each distance
     for i=1:length(azimuthDegq) % number of azimuth angles
@@ -122,7 +115,7 @@ for pnt = 1:size(xyPoints,1) % loop for each point in array
         rowq = ceil(abs((yLimits(1)-yq)/yCellSize)); % gets the row index for y (northing) locations
         
         % use linear indexing to assign DEM_data elevation to array (faster than for loop?)
-        elev_mq(pnt,:) = DEM_data(sub2ind(size(DEM_data),rowq(:),colq(:))); %queried elevation in meters at new xy coordinates (this line breaks the code sometimes...)
+        elev_mq(pnt,:) = DEM_data(sub2ind(size(DEM_data),rowq(:),colq(:))); %queried elevation in meters at new xy coordinates
 
         % calculate illumination anlge
         dH = elev_mq(pnt,:)-elev_m; %change in height
@@ -130,20 +123,5 @@ for pnt = 1:size(xyPoints,1) % loop for each point in array
         illum_elev(pnt,i) = elev_mq(loc); % rim elevation for max illumination angle
         illum_dist(pnt,i) = qdist(loc); % distance to rim elevation for max illum angle
         
-        % additional metrics (slows down code significantly)
-        if return_grid == 1
-            utm_elev(pnt) = elev_m;
-            x_ind(pnt,i,:) = xq; %x coord for each dist %(Slows down code, comment out if not needed)
-            y_ind(pnt,i,:) = yq; %y coord for each dist %(Slows down code, comment out if not needed)
-            elev_ind(pnt,i,:) = elev_mq(pnt,:); % elevation for each distance %(Slows down code, comment out if not needed)
-        end
     end
-end
-
-% if additional metrics are not needed set grid_data to 0 in function
-if return_grid == 0
-    utm_elev = [];
-    x_ind = [];
-    y_ind = [];
-    elev_ind = [];
 end
