@@ -17,7 +17,8 @@ function [illum_angle,illum_elev,illum_dist,utm_elev,x_ind,y_ind,elev_ind] = azi
 % Input Variables
 %       xyPoints = [nx2] vector of query point(s) (x,y) in either UTM or
 %       decimal degrees
-%       xyCoord = string that equals 'UTM' or 'DD'
+%       xyCoord = string that equals 'UTM' or 'DD' to indicate coodinate
+%       system
 %       h = meters above ground surface. Model seems to work better with
 %       observation point 1-3 meters above surface.
 %       DEM_data = raster grid data (10 km buffer around points of interest
@@ -73,11 +74,9 @@ end
 
 %% Determine coordinate system of points and convert xyCoords if needed
 % if xy coordinates do not match raster, convert xy to match
-if strcmp(xyCoord,'UTM') %then convert to UTM
-        [utm_x,utm_y] = utmups_fwd(xyPoints(:,2),xyPoints(:,1)); %DD to uTM conversion
+if strcmp(xyCoord,'DD') %then convert to UTM
+        [utm_x,utm_y] = utmups_fwd(xyPoints(:,2),xyPoints(:,1)); %DD to UTM conversion
         xyPoints = [utm_x,utm_y];
-    else
-        error('Unknown coordinate system of DEM raster')
 end
 
 % Raster cell size
@@ -98,6 +97,12 @@ qdist = linspace(0,r,n+1); %query distances in meters
 azAngles = [0 90 180 270 360 450];
 radDeg = [90 0 -90 -180 -270 -360];
 azimuthDegq = round(interp1(azAngles,radDeg,azimuthDeg),1);
+
+%% Preallocate memory to variables for speed
+% elev_mq
+% illum_angle
+% illum_elev
+% illum_dist
 
 %% Loop for number of xy points
 for pnt = 1:size(xyPoints,1) % loop for each point in array
