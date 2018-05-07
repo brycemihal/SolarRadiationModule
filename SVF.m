@@ -10,6 +10,7 @@ function [SkyVF] = SVF(illum_angle)
 
 % Code incomplete
 % Used to make comparison of different svf methods
+% 1 = flat plane/unobstructed; 0 = infinitely deep canyon 
 
 for i = 1:size(illum_angle,1)
     %% Change illumination angles to be from horizontal

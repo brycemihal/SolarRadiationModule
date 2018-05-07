@@ -4,7 +4,7 @@ function[incidence,dateTimes,SkyVF] = SolarIncidence(xyPoints,xyCoord,azimuthDeg
 %
 % Description: function to determine solar incidence and sky view factor.
 % Several other output variables are calculated but are not included in the
-% output of the function at this time. If more certain variables are needed
+% output of the function at this time. If certain variables are needed
 % add them to the brackets above to include in output function. Reminder, 
 % variables need to change where it function is called too if this is done. 
 %
@@ -89,6 +89,8 @@ lat_deg = xyPoints(:,2);
 %% preallocate memory to variables for speed
 % Arrays
 SkyVF = zeros(size(xyPoints,1),1); %floating point array
+southHemiMinAz = zeros(size(xyPoints,1),1); %floating point array
+northHemiMinAz = zeros(size(xyPoints,1),1); %floating point array
 sunriseTime = cell(size(xyPoints,1),size(DOYs,2)); %character array
 sunriseAz = zeros(size(xyPoints,1),size(DOYs,2)); %floating point array
 sunriseZe = zeros(size(xyPoints,1),size(DOYs,2)); %floating point array
@@ -99,9 +101,11 @@ sunsetZe = zeros(size(xyPoints,1),size(DOYs,2)); %floating point array
 incidence = false(size(DOYs,2),size(LocalTimes,2),size(xyPoints,1)); %3D logical array [DOY x incidence x point]
 directBeamDayLength = zeros(size(xyPoints,1),size(DOYs,2)); %floating point array
 TopoRiseTime = cell(size(xyPoints,1),size(DOYs,2)); %floating point array
+TopoRiseSolZe = zeros(size(xyPoints,1),size(DOYs,2)); %floating point array
 TopoRiseSolAz = zeros(size(xyPoints,1),size(DOYs,2)); %floating point array
 TopoRiseSolAlt = zeros(size(xyPoints,1),size(DOYs,2)); %floating point array
 TopoSetTime = cell(size(xyPoints,1),size(DOYs,2)); %floating point array
+TopoSetSolZe = zeros(size(xyPoints,1),size(DOYs,2)); %floating point array
 TopoSetSolAz = zeros(size(xyPoints,1),size(DOYs,2)); %floating point array
 TopoSetSolAlt = zeros(size(xyPoints,1),size(DOYs,2)); %floating point array
 diffuseRiseTime = cell(size(xyPoints,1),size(DOYs,2)); %character array
@@ -112,7 +116,8 @@ diffuseLength = zeros(size(xyPoints,1),size(DOYs,2)); %floating point array
 numDays = length(DOYs);
 numTimes = length(LocalTimes);
 numPoints = size(xyPoints,1);
-
+southernHemAngles = 90:269;
+northernHemAngles = [0:89,270:359];
 %% Calculate solar zenith and azimuth angles for a point
 UTCtimes = LocalTimes - UTCoffset; %input is in local time, need to input times in function in UTC
 
@@ -120,10 +125,14 @@ for pnt = 1:size(xyPoints,1) % loop for each point in array
     
     % HemisphericalArea (Sky View Factor)
     SkyVF(pnt) = mean((90-illum_angle(pnt,:))./90); %from Yard paper - consider changing to other svf methods
-    % AzimuthOfLowestAltitude90to269 ?% not sure how to calculate this yet
-    % AzimuthOfLowestAltitude270to89 ?% not sure how to calculate this yet
-    % CanyonAzimuth ?% not sure how to calculate this yet
-    % CanyonHemiAngle ?% not sure how to calculate this yet
+    % AzimuthOfLowestAltitude90to269 = lowest altitude angle in southern hemisphere 
+    [~,azimuth] = min(illum_angle(pnt,90:269));
+    southHemiMinAz(pnt) = southernHemAngles(azimuth);
+    % AzimuthOfLowestAltitude270to89 = lowest altitude angle in northern hemisphere
+    [~,azimuth] = min(illum_angle(pnt,[1:89,270:end]));
+    northHemiMinAz(pnt) = northernHemAngles(azimuth);
+    % CanyonAzimuth = quick way to estimate direction of the river
+    % CanyonHemiAngle =  used to get  HemisphericalArea (Sky View Factor) for diffuse insolation
     
     for jday = 1:numDays % loop for days of year to test
 
@@ -156,19 +165,23 @@ for pnt = 1:size(xyPoints,1) % loop for each point in array
         
         % ----------- Topography ---------------
         if directBeamDayLength(pnt,jday) ~= 0 %check to see if point gets no direct been
-                            % TopoRise Time      
+            % TopoRise Time      
             TopoRiseT = hours(minutes(find(incidence(jday,:,pnt),1,'first'))); %finds the first 1 in the incidence array and calculates time duration in decimal hours
             TopoRiseTime(pnt,jday) = strcat(datestr(DOY,'dd-mmm'),{' '},datestr(hours(TopoRiseT),'HH:MM:SS')); % string
-            % TopoRise solazimuth
+            % TopoRise solar Zenith (incidence)
+            TopoRiseSolZe(pnt,jday) = interp1(LocalTimes,solar_zenith,TopoRiseT); % degree
+            % TopoRise solar Azimuth
             TopoRiseSolAz(pnt,jday) = interp1(LocalTimes,solar_azimuth,TopoRiseT); % degree
-            % TopoRise solAltitude
+            % TopoRise solar Altitude
             TopoRiseSolAlt(pnt,jday) = interp1(LocalTimes,solar_altitude,TopoRiseT); % degrees
             % TopoSet Time
             TopoSetT = hours(minutes(find(incidence(jday,:,pnt),1,'last'))); %finds the last 1 in the incidence array and calculates time duration in decimal hours
             TopoSetTime(pnt,jday) = strcat(datestr(DOY,'dd-mmm'),{' '},datestr(hours(TopoSetT),'HH:MM:SS')); % string
-            % TopoSet solazimuth
+            % TopoSet solar Zenith (incidence)
+            TopoSetSolZe(pnt,jday) = interp1(LocalTimes,solar_zenith,TopoSetT); %degrees
+            % TopoSet solar Azimuth
             TopoSetSolAz(pnt,jday) = interp1(LocalTimes,solar_azimuth,TopoSetT); %degrees
-            % TopoSet solAltitude
+            % TopoSet solar Altitude
             TopoSetSolAlt(pnt,jday) = interp1(LocalTimes,solar_altitude,TopoSetT); % degrees from horizontal
         
         else %if no direct beam set values to zero
