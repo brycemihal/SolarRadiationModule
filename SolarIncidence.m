@@ -124,6 +124,7 @@ UTCtimes = LocalTimes - UTCoffset; %input is in local time, need to input times 
 for pnt = 1:size(xyPoints,1) % loop for each point in array
     
     % HemisphericalArea (Sky View Factor)
+    pnt
     SkyVF(pnt) = mean((90-illum_angle(pnt,:))./90); %from Yard paper - consider changing to other svf methods
     % AzimuthOfLowestAltitude90to269 = lowest altitude angle in southern hemisphere 
     [~,azimuth] = min(illum_angle(pnt,90:269));
@@ -133,7 +134,6 @@ for pnt = 1:size(xyPoints,1) % loop for each point in array
     northHemiMinAz(pnt) = northernHemAngles(azimuth);
     % CanyonAzimuth = quick way to estimate direction of the river
     % CanyonHemiAngle =  used to get  HemisphericalArea (Sky View Factor) for diffuse insolation
-    
     for jday = 1:numDays % loop for days of year to test
 
         DOY = DOYs(jday); %day of year for iteration
