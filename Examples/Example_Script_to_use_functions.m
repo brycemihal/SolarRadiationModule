@@ -24,6 +24,12 @@
 %  UTCoffset = timezone correction (Utah = -7)
 
 clear; clc;
+
+% cd to location of m file
+m = mfilename;
+p = mfilename('fullpath');
+cd(p(1:end-length(m)))
+modelResultsPath = pwd;
 %% Change file paths here:
 % Lat/lon points file (can be decimal degrees or UTM)
 CORiv_latlon = '/Users/bryce/Documents/MATLAB/Colorado_River_Basin/GIS_data/SolarRadiationModule/Examples/GlenCan_CO_River_pnts.csv'; %lat long values in dec. deg.

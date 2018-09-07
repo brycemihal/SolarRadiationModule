@@ -1,7 +1,7 @@
 function [illum_angle,illum_elev,illum_dist] = azimuth360(xyPoints,xyCoord,azimuthDeg,DEM_data,DEM_ref,h,r,n)
 %% Function to calculate 0:360 degree asimuth angles for a lat/lon points
 % Bryce Mihalevich
-% Last modified: 5/3/18
+% Last modified: 9/6/18
 %
 % Description: 
 % This function will calculate the illumination angle (the angle from the
@@ -123,5 +123,11 @@ for pnt = 1:size(xyPoints,1) % loop for each point in array
         illum_elev(pnt,i) = elev_mq(loc); % rim elevation for max illumination angle
         illum_dist(pnt,i) = qdist(loc); % distance to rim elevation for max illum angle
         
+    end
+    
+    % Percent Complete
+    if mod(pnt,round(size(xyPoints,1)/50))==0 %write out percent progress to command window
+        percentComplete = round(pnt/size(xyPoints,1)*100);
+        fprintf('~%d%% complete\n',percentComplete);
     end
 end
