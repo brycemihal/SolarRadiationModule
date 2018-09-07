@@ -73,6 +73,7 @@ function[incidence,dateTimes,SkyVF] = SolarIncidence(xyPoints,xyCoord,azimuthDeg
 %
 % For example code see: Example_Script_to_use_functions.m in Examples folder. 
 %
+disp('running SolarIncidence.m');
 %% Determine coordinate system of points and convert xyCoords if needed
 % if xy coordinates are in UTM then convert
 if strcmp(xyCoord,'UTM') %then convert to UTM
@@ -235,5 +236,5 @@ dateArray = repmat(DOYs,size(LocalTimes,2),1); %repeat matrix for number of valu
 dateArray = dateArray(:); %stack columns
 timeArray = repmat(LocalTimes',size(DOYs,2),1); %repeat matrix for number of DOYs
 
-datetimeString = strcat(datestr(dateArray,'dd-mmm'),{' '},datestr(hours(timeArray),'HH:MM:SS')); %concatenate the date and the time
-dateTimes = datetime(datetimeString,'InputFormat','dd-MMM HH:mm:SS'); %auto appends the current year
+datetimeString = strcat(datestr(datestr(dateArray,'dd-mmm'),'yyyy-mm-dd'),{' '},datestr(hours(timeArray),'HH:MM:SS')); %concatenate the date and the time
+dateTimes = datetime(datetimeString,'InputFormat','yyyy-MM-dd HH:mm:SS'); %auto appends the current year

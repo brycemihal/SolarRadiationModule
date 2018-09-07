@@ -30,16 +30,16 @@ m = mfilename;
 p = mfilename('fullpath');
 cd(p(1:end-length(m)))
 modelResultsPath = pwd;
-%% Change file paths here:
+%% Change file names if needed. Put .csv and .tif in same folder as this script
 % Lat/lon points file (can be decimal degrees or UTM)
-CORiv_latlon = '/Users/bryce/Documents/MATLAB/Colorado_River_Basin/GIS_data/SolarRadiationModule/Examples/GlenCan_CO_River_pnts.csv'; %lat long values in dec. deg.
+CORiv_latlon = 'GlenCan_CO_River_pnts.csv'; %lat long values in dec. deg.
 
 % DEM data file with projected coordinates
-DEMfilepath = '/Users/bryce/Documents/MATLAB/Colorado_River_Basin/GIS_data/SolarRadiationModule/Examples/GlenCan_dem_clip_UTM.tif';
+DEMfilepath = 'GlenCan_dem_clip_UTM.tif'; % Glen Canyon Dam to Lees Ferry in UTM Zone 12
 
 %% Initialization Variables:
 % ------------------ azimuth360.m function --------------------------
-import csv
+% import csv
 fid = fopen(CORiv_latlon,'r');
 data = textscan(fid,'%f%f%f%[^\n\r]','Delimiter',',','HeaderLines',2); %read csv
 fclose(fid);
@@ -53,9 +53,9 @@ xyCoord = 'DD'; %decimal degrees. If using utm coordinates change to "UTM"
 % lat_deg = 36.93642; lon_deg = -111.48363; xyCoord = 'DD'; %Glen Canyon Dam
 % utm_x = 456932.558709032; utm_y = 4087928.50129882; xyCoord = 'UTM'; %Glen Canyon Dam
 
-h = 1; %meters
-r = 10000;
-n = 10000;
+h = 1; %height in meters above water surface to evaluate shading (eliminates some noise)
+r = 10000; % radius in meters to evaluate 
+n = 10000; % number of samples in search radius
 
 % import DEM
 [DEM_data, DEM_ref] = geotiffread(DEMfilepath); %matrix of elevation data and reference/metadata 
@@ -64,7 +64,7 @@ azimuthDeg = 0:359; %degrees
 
 % ------------------ SolarInsolation.m function --------------------------
 DOYs = [80,172,264,355]; %days of the year to evaluate;
-LocalTimes =  0:(1/60):(23+56/60); %times during day to evaluate (local time);
+LocalTimes =  0:(1/60):(23+59/60); %times during day to evaluate (local time);
 UTCoffset = -7; %timezone correction
 
 %% Run Illumination angle calculation function

@@ -49,6 +49,7 @@ function [illum_angle,illum_elev,illum_dist] = azimuth360(xyPoints,xyCoord,azimu
 % azimuthDeg = 0:359;                                                             % (x)    (y)
 % [illum_angle,illum_elev,illum_dist,utm_elev,x_ind,y_ind,elev_ind] = azimuth360([lon_deg,lat_deg],xyCoord,h,DEM_data,DEM_ref,azimuthDeg,10000,10000,0);
 
+disp('running azimuth360.m');
 %% Flip DEM data if needed
 % code is writen so y data starts in the south; DEM's typically start in the north. 
 % DEM data can be flipped. Use DEM reference info to flip data
