@@ -32,7 +32,6 @@ cd(p(1:end-length(m)))
 modelResultsPath = pwd;
 cd ..
 addpath(genpath(pwd))
-cd(modelResultsPath)
 %% Change file names if needed. Put .csv and .tif in same folder as this script
 % Lat/lon points file (can be decimal degrees or UTM)
 CORiv_latlon = 'GlenCan_CO_River_pnts.csv'; %lat long values in dec. deg.
